@@ -23,22 +23,35 @@ async function send() {
   const input = document.getElementById("input");
   const chat = document.getElementById("chat");
 
-  const userMsg = input.value;
+  const userMsg = input.value.trim();
   if (!userMsg) return;
 
   chat.innerHTML += `<p><b>You:</b> ${userMsg}</p>`;
   input.value = "";
 
-  const res = await fetch("https://ai-chatbot-backend-plsm.onrender.com/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: userMsg })
-  });
+  try {
+    chat.innerHTML += `<p><i>Bot is thinking...</i></p>`;
 
-  const data = await res.json();
-  chat.innerHTML += `<p><b>Bot:</b> ${data.reply}</p>`;
+    const res = await fetch("https://ai-chatbot-backend-plsm.onrender.com/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: userMsg })
+    });
+
+    if (!res.ok) {
+      throw new Error("Backend error");
+    }
+
+    const data = await res.json();
+    chat.innerHTML += `<p><b>Bot:</b> ${data.reply}</p>`;
+  } catch (err) {
+    chat.innerHTML += `<p style="color:red"><b>Error:</b> Backend not responding yet. Try again.</p>`;
+    console.error(err);
+  }
 }
 </script>
+
+
 
 </body>
 </html>
