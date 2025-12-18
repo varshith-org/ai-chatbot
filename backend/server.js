@@ -42,8 +42,7 @@ app.post("/chat", async (req, res) => {
     messages: [{ role: "user", content: userMessage }],
   });
 
-  const reply = completion.choices[0].message.content;
-
+  const reply = completion.choices?.[0]?.message?.content || "No reply from model";
   memory.push({ question: userMessage, answer: reply });
   saveMemory(memory);
 
