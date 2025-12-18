@@ -1,5 +1,4 @@
 const express = require("express");
-const cors = require("cors");
 const dotenv = require("dotenv");
 const fs = require("fs");
 const OpenAI = require("openai");
@@ -8,21 +7,24 @@ dotenv.config();
 
 const app = express();
 
-/* ✅ CORS FIX — allow Netlify */
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
-}));
+/* 🔥 HARD CORS FIX (NO LIBRARY) */
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 app.use(express.json());
 
-/* ✅ OpenAI */
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-/* ✅ Memory */
 const MEMORY_FILE = "memory.json";
 
 function loadMemory() {
@@ -34,12 +36,12 @@ function saveMemory(data) {
   fs.writeFileSync(MEMORY_FILE, JSON.stringify(data, null, 2));
 }
 
-/* ✅ Chat endpoint */
 app.post("/chat", async (req, res) => {
   try {
     const userMessage = req.body.message;
+
     if (!userMessage) {
-      return res.status(400).json({ reply: "No message provided" });
+      return res.status(400).json({ reply: "Message missing" });
     }
 
     let memory = loadMemory();
@@ -60,7 +62,7 @@ app.post("/chat", async (req, res) => {
     const reply =
       response.output_text ||
       response.output?.[0]?.content?.[0]?.text ||
-      "No reply generated";
+      "No response";
 
     memory.push({ question: userMessage, answer: reply });
     saveMemory(memory);
@@ -68,12 +70,12 @@ app.post("/chat", async (req, res) => {
     res.json({ reply });
 
   } catch (err) {
-    console.error("Chat error:", err);
+    console.error("ERROR:", err);
     res.status(500).json({ reply: "Server error" });
   }
 });
 
-/* ✅ Render PORT FIX */
+/* 🔥 RENDER PORT FIX */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Backend running on port", PORT);
