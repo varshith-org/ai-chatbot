@@ -7,15 +7,18 @@ dotenv.config();
 
 const app = express();
 
-/* 🔥 HARD CORS FIX (NO LIBRARY) */
+/* 🔥 ABSOLUTE CORS FIX */
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  res.sendStatus(200);
+});
+
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
   next();
 });
 
@@ -44,16 +47,6 @@ app.post("/chat", async (req, res) => {
       return res.status(400).json({ reply: "Message missing" });
     }
 
-    let memory = loadMemory();
-
-    const found = memory.find(
-      m => m.question.toLowerCase() === userMessage.toLowerCase()
-    );
-
-    if (found) {
-      return res.json({ reply: found.answer + " (from memory)" });
-    }
-
     const response = await openai.responses.create({
       model: "gpt-4.1-mini",
       input: userMessage,
@@ -62,20 +55,16 @@ app.post("/chat", async (req, res) => {
     const reply =
       response.output_text ||
       response.output?.[0]?.content?.[0]?.text ||
-      "No response";
-
-    memory.push({ question: userMessage, answer: reply });
-    saveMemory(memory);
+      "No reply";
 
     res.json({ reply });
-
   } catch (err) {
-    console.error("ERROR:", err);
+    console.error("CHAT ERROR:", err);
     res.status(500).json({ reply: "Server error" });
   }
 });
 
-/* 🔥 RENDER PORT FIX */
+/* 🔥 RENDER PORT */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Backend running on port", PORT);
