@@ -1,71 +1,54 @@
 const express = require("express");
 const dotenv = require("dotenv");
-const fs = require("fs");
 const OpenAI = require("openai");
 
 dotenv.config();
 
 const app = express();
 
-/* 🔥 ABSOLUTE CORS FIX */
-app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
-  res.sendStatus(200);
-});
-
+/* ✅ SAFE CORS (Render + Netlify compatible) */
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
   next();
 });
 
 app.use(express.json());
 
+/* ✅ OpenAI client */
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const MEMORY_FILE = "memory.json";
-
-function loadMemory() {
-  if (!fs.existsSync(MEMORY_FILE)) return [];
-  return JSON.parse(fs.readFileSync(MEMORY_FILE, "utf8"));
-}
-
-function saveMemory(data) {
-  fs.writeFileSync(MEMORY_FILE, JSON.stringify(data, null, 2));
-}
-
+/* ✅ Chat route */
 app.post("/chat", async (req, res) => {
   try {
     const userMessage = req.body.message;
-
     if (!userMessage) {
-      return res.status(400).json({ reply: "Message missing" });
+      return res.status(400).json({ reply: "No message provided" });
     }
 
-    const response = await openai.responses.create({
-      model: "gpt-4.1-mini",
-      input: userMessage,
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: userMessage }],
     });
 
-    const reply =
-      response.output_text ||
-      response.output?.[0]?.content?.[0]?.text ||
-      "No reply";
-
+    const reply = completion.choices[0].message.content;
     res.json({ reply });
-  } catch (err) {
-    console.error("CHAT ERROR:", err);
-    res.status(500).json({ reply: "Server error" });
+
+  } catch (error) {
+    console.error("OPENAI ERROR:", error);
+    res.status(500).json({ reply: "Backend error" });
   }
 });
 
-/* 🔥 RENDER PORT */
-const PORT = process.env.PORT || 3000;
+/* ✅ REQUIRED for Render */
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log("Backend running on port", PORT);
 });
