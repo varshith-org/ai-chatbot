@@ -37,13 +37,12 @@ app.post("/chat", async (req, res) => {
     return res.json({ reply: found.answer + " (from memory)" });
   }
 
-  cconst completion = await openai.responses.create({
+  const completion = await openai.responses.create({
   model: "gpt-4.1-mini",
   input: userMessage,
 });
 
-const reply = completion.output_text;
- || "No reply from model";
+const reply = completion.output_text || "No reply from model";
   memory.push({ question: userMessage, answer: reply });
   saveMemory(memory);
 
