@@ -54,8 +54,8 @@ app.post("/chat", async (req, res) => {
 
     // Safely extract reply
     const reply =
-      completion.output?.[0]?.content?.[0]?.text ||
-      "No reply from model";
+  completion.output?.[0]?.content?.[0]?.text ??
+  "No reply from model";
 
     // Save to memory
     memory.push({ question: userMessage, answer: reply });
